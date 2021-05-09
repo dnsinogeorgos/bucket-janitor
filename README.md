@@ -32,7 +32,7 @@ and contain data of the appropriate type.
 
 ### Use:
 You can't really use it yet, but if you're inclined...  
-copy the example json from the configs folder, then execute as below:
+copy and edit the example json from the configs folder, then execute as below:
 ```
 go build cmd/bucket-janitor.go
 ./bucket-janitor.go -c config.json
