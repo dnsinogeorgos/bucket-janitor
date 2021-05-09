@@ -1,0 +1,9 @@
+{
+  "s3_region": "a-region-1",
+  "s3_buckets": [
+    "bucket_name1",
+    "bucket_name2"
+  ],
+  "aws_access_key_id": "XXX",
+  "aws_secret_key": "xxxXXXxxx"
+}
