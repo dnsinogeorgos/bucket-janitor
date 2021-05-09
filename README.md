@@ -42,17 +42,18 @@ go build cmd/bucket-janitor.go
 - [ ] complete imperative pieces
 - [ ] restructure for concurrency
 - [ ] retrieve values from flags/env but also json file
+- [ ] export/apply diff functionality
 
-### What it does:
+### What it will do:
 ##### receives:
 * aws credentials
 * a list of buckets
-* a struct of file extensions (key) and an array of magic types (value)
-* concurrency/rate limiting options
-* (optional) a json file with corrective actions to take on bucket objects
+* (soon) a set of file extensions and magic types
+* (soon) concurrency/rate limiting options
+* (optional) a json file with corrective actions to take on bucket objects (exported by the same tool)
 
 ##### returns:
-* the object paths that do not comply with the allowed file/magic types
+* the object keys that do not comply with the allowed file/magic types
 * the corrective actions required to take on the objects
 
 ### Use case:  
