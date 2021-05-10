@@ -14,12 +14,15 @@ func Objects(AwsAccessKeyId, AwsSecretKey, S3Region string, S3Buckets []string) 
 	// Create objects map and populate it
 	s3ObjectMap := make(map[string][]*s3.Object)
 	for _, bucket := range S3Buckets {
-		object, err := ListBucket(session, bucket)
-		if err != nil {
-			return nil, err
-		}
+		objectCh := ListBucket(session, bucket)
+		objectSlice := make([]*s3.Object, 0)
 
-		s3ObjectMap[bucket] = object
+		_ = objectCh
+
+		for object := range objectCh {
+			objectSlice = append(objectSlice, object)
+		}
+		s3ObjectMap[bucket] = objectSlice
 	}
 
 	// Create downloader
