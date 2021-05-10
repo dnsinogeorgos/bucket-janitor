@@ -12,7 +12,7 @@ import (
 // batchSize is the number of objects to list on each API call to S3
 const batchSize int = 1000
 
-// ListBucket returns a slice of s3 objects
+// ListBucket returns a channel of s3 objects and closes it when done
 func ListBucket(sess *session.Session, bucket string) chan *s3.Object {
 	objectCh := make(chan *s3.Object)
 	go func() {
