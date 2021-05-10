@@ -1,6 +1,8 @@
 package load
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -16,6 +18,8 @@ func ListBucket(sess *session.Session, bucket string) ([]*s3.Object, error) {
 	afterKey := ""
 	batchSizeInt64 := int64(batchSize)
 	objects := make([]*s3.Object, 0)
+
+	fmt.Printf("listing bucket: %s\n", bucket)
 
 	for responseLength == batchSize {
 		response, err := client.ListObjectsV2(

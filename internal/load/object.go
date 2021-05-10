@@ -1,6 +1,7 @@
 package load
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,7 +16,7 @@ type Object struct {
 }
 
 // fetchHeaderBytes number of first bytes to retrieve for each object
-const fetchHeaderBytes = 2048
+const fetchHeaderBytes = 1024
 
 // RetrieveObject returns object header bytes
 func RetrieveObject(downloader *s3manager.Downloader, bucket string, s3Object *s3.Object) (*Object, error) {
@@ -33,6 +34,8 @@ func RetrieveObject(downloader *s3manager.Downloader, bucket string, s3Object *s
 		Key:  *s3Object.Key,
 		Data: bytes.Bytes(),
 	}
+
+	fmt.Printf("%s: %s\n", bucket, *s3Object.Key)
 
 	return &byteObject, nil
 }

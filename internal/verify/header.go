@@ -9,17 +9,12 @@ import (
 	"github.com/vimeo/go-magic/magic"
 )
 
-// ScanHeader scans Key name and Bytes of object in order to verify type
-func ScanHeader(header *load.Object) error {
-	err := magic.AddMagicDir(magic.GetDefaultDir())
-	if err != nil {
-		return err
-	}
+// Object scans Key name and Bytes of object in order to verify type
+func Object(object *load.Object) error {
+	keyMime := mime.TypeByExtension(filepath.Ext(object.Key))
+	dataMagic := magic.MimeFromBytes(object.Data)
 
-	keyMime := mime.TypeByExtension(filepath.Ext(header.Key))
-	dataMagic := magic.MimeFromBytes(header.Data)
-
-	_, err = fmt.Printf("Scanning object %s\n", header.Key)
+	_, err := fmt.Printf("Scanning object %s\n", object.Key)
 	if err != nil {
 		return err
 	}
