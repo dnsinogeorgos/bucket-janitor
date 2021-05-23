@@ -28,8 +28,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// var wg sync.WaitGroup
-
 	headers := load.Headers(
 		cfg,
 		c.S3Buckets,
