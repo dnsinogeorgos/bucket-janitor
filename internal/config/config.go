@@ -7,10 +7,9 @@ import (
 
 // Config stores the configuration loaded during startup
 type Config struct {
-	AwsAccessKeyId string   `json:"aws_access_key_id"`
-	AwsSecretKey   string   `json:"aws_secret_key"`
-	S3Region       string   `json:"s3_region"`
-	S3Buckets      []string `json:"s3_buckets"`
+	S3Region    string   `json:"s3_region"`
+	S3Buckets   []string `json:"s3_buckets"`
+	Concurrency int      `json:"concurrency"`
 }
 
 // NewConfig creates a config instance and loads json content from file

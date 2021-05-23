@@ -1,55 +1,68 @@
 package load
 
 import (
-	"fmt"
+	"context"
 	"log"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
+
+// ListBuckets returns a chan of s3 object slices
+func ListBuckets(client *s3.Client, S3Buckets []string, limit int) map[string]<-chan types.Object {
+	sem := make(chan token, limit)
+	channels := make(map[string]<-chan types.Object)
+
+	for _, bucket := range S3Buckets {
+		channels[bucket] = ListBucket(client, bucket, sem)
+	}
+
+	return channels
+}
 
 // batchSize is the number of objects to list on each API call to S3
 const batchSize int = 1000
 
-// ListBucket returns a channel of s3 objects and closes it when done
-func ListBucket(sess *session.Session, bucket string) chan *s3.Object {
-	objectCh := make(chan *s3.Object)
-	go func() {
-		defer close(objectCh)
+// ListBucket returns a chan of s3 objects and ships a goroutine to fetch them
+func ListBucket(client *s3.Client, bucket string, sem chan token) <-chan types.Object {
+	c := make(chan types.Object)
 
-		client := s3.New(sess)
+	sem <- token{}
+	go func() {
+
+		ctx := context.Background()
 		responseLength := batchSize
 		afterKey := ""
-		batchSizeInt64 := int64(batchSize)
-
-		fmt.Printf("start listing bucket: %s\n", bucket)
+		batchSizeInt32 := int32(batchSize)
 
 		for responseLength == batchSize {
-			response, err := client.ListObjectsV2(
+			response, err := client.ListObjectsV2(ctx,
 				&s3.ListObjectsV2Input{
 					Bucket:     aws.String(bucket),
 					StartAfter: &afterKey,
-					MaxKeys:    &batchSizeInt64,
+					MaxKeys:    batchSizeInt32,
 				})
 			if err != nil {
-				log.Printf("breaking loop listing bucket %s: %s\n", bucket, err)
-				break
+				log.Printf("failed listing bucket %s: %s\n", bucket, err)
+				close(c)
+				<-sem
+				return
 			}
 
 			responseLength = len(response.Contents)
 			if responseLength == batchSize {
 				afterKey = *response.Contents[responseLength-1].Key
-			} else {
-				afterKey = ""
 			}
 
 			for _, object := range response.Contents {
-				objectCh <- object
+				c <- object
 			}
 		}
 
-		fmt.Printf("end listing bucket: %s\n", bucket)
+		close(c)
+		<-sem
 	}()
-	return objectCh
+
+	return c
 }

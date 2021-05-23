@@ -3,7 +3,14 @@
 
 Use on S3 buckets to verify the state of objects.  
 More specifically, to make sure files have certain file extensions
-and contain data of the appropriate type.
+and contain data of the appropriate type.  
+
+### Note:
+This is meant to be an excercise in concurrent coding.  
+I'm using the inverted worker pool pattern to list bucket object.
+I will be using a custom HTTP client to enable persistent connections to S3.  
+I intend to implement a resource pool of persistent connections to S3 in order to speed
+up fetching object headers.  
 
 ```
 |-- LICENSE
@@ -19,15 +26,14 @@ and contain data of the appropriate type.
     |   `-- config.go
     |-- load
     |   |-- bucket.go
-    |   |-- downloader.go
-    |   |-- object.go
-    |   `-- session.go
+    |   |-- main.go
+    |   `-- object.go
     `-- verify
         `-- header.go
 ```
 
 ### Use:
-You can't really use it yet, but if you're inclined...  
+It's still not in a useful state, but if you're inclined...  
 copy and edit the example json from the configs folder, then execute as below:
 ```
 go build cmd/bucket-janitor.go
@@ -46,7 +52,8 @@ go build cmd/bucket-janitor.go
 * a list of buckets
 * (soon) a set of file extensions and magic types
 * (soon) concurrency/rate limiting options
-* (optional) a json file with corrective actions to take on bucket objects (exported by the same tool)
+* (optional) a json file with corrective actions to take on bucket objects (exported by
+  the same tool a-la-terraform plan)
 
 ##### return:
 * the object keys that do not comply with the allowed file/magic types

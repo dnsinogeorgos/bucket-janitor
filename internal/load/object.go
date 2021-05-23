@@ -1,41 +1,79 @@
 package load
 
 import (
-	"fmt"
+	"context"
+	"log"
 	"strconv"
+	"sync"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
-// Object is a container for the header byteslice and the object key
-type Object struct {
+// Header is a container for the header byteslice and the object key
+type Header struct {
 	Key  string
 	Data []byte
+}
+
+// BundleHeaders retries the s3 object data headers asynchronously and immediately returns a map of *Header channels
+func BundleHeaders(downloader *manager.Downloader, objectChannels map[string]<-chan types.Object, limit int) map[string]chan *Header {
+	channels := make(map[string]chan *Header)
+	sem := make(chan token, limit)
+
+	for bucket, objectCh := range objectChannels {
+		channels[bucket] = FunnelHeaders(downloader, bucket, objectCh, sem)
+	}
+
+	return channels
+}
+
+// FunnelHeaders retrieves headers from a channel and returns them in a slice
+func FunnelHeaders(downloader *manager.Downloader, bucket string, objects <-chan types.Object, sem chan token) chan *Header {
+	c := make(chan *Header)
+
+	go func() {
+		var wg sync.WaitGroup
+		for object := range objects {
+			wg.Add(1)
+			sem <- token{}
+			go func(object types.Object) {
+				c <- RetrieveHeader(downloader, bucket, object)
+				<-sem
+				wg.Done()
+			}(object)
+		}
+
+		wg.Wait()
+		close(c)
+	}()
+
+	return c
 }
 
 // fetchHeaderBytes number of first bytes to retrieve for each object
 const fetchHeaderBytes = 1024
 
-// RetrieveObject returns object header bytes
-func RetrieveObject(downloader *s3manager.Downloader, bucket string, s3Object *s3.Object) (*Object, error) {
-	bytes := &aws.WriteAtBuffer{}
-	_, err := downloader.Download(bytes, &s3.GetObjectInput{
+// RetrieveHeader returns a byteslice of the object's data header
+func RetrieveHeader(downloader *manager.Downloader, bucket string, object types.Object) *Header {
+	b := make([]byte, fetchHeaderBytes)
+	wb := manager.NewWriteAtBuffer(b)
+	_, err := downloader.Download(context.Background(), wb, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(*s3Object.Key),
+		Key:    aws.String(*object.Key),
 		Range:  aws.String("bytes=0-" + strconv.Itoa(fetchHeaderBytes-1)),
 	})
 	if err != nil {
-		return &Object{}, err
+		log.Printf("error retrieving %s from %s: %s\n", *object.Key, bucket, err)
+		return nil
 	}
 
-	byteObject := Object{
-		Key:  *s3Object.Key,
-		Data: bytes.Bytes(),
+	header := &Header{
+		Key:  *object.Key,
+		Data: wb.Bytes(),
 	}
 
-	fmt.Printf("%s: %s\n", bucket, *s3Object.Key)
-
-	return &byteObject, nil
+	return header
 }
