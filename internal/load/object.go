@@ -2,7 +2,7 @@ package load
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"strconv"
 	"sync"
 
@@ -14,8 +14,9 @@ import (
 
 // Header is a container for the header byteslice and the object key
 type Header struct {
-	Key  string
-	Data []byte
+	Key   string
+	Data  []byte
+	Error error
 }
 
 // BundleHeaders retries the s3 object data headers asynchronously and immediately returns a map of *Header channels
@@ -60,19 +61,36 @@ const fetchHeaderBytes = 1024
 func RetrieveHeader(downloader *manager.Downloader, bucket string, object types.Object) *Header {
 	b := make([]byte, fetchHeaderBytes)
 	wb := manager.NewWriteAtBuffer(b)
+	numBytes := fetchHeaderBytes
+
+	switch {
+	case numBytes > int(object.Size):
+		numBytes = int(object.Size)
+	case numBytes == 0:
+		return &Header{
+			Key:   *object.Key,
+			Data:  make([]byte, 0),
+			Error: fmt.Errorf("object has 0 bytes"),
+		}
+	}
+
 	_, err := downloader.Download(context.Background(), wb, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(*object.Key),
-		Range:  aws.String("bytes=0-" + strconv.Itoa(fetchHeaderBytes-1)),
+		Range:  aws.String("bytes=0-" + strconv.Itoa(numBytes-1)),
 	})
 	if err != nil {
-		log.Printf("error retrieving %s from %s: %s\n", *object.Key, bucket, err)
-		return nil
+		return &Header{
+			Key:   *object.Key,
+			Data:  make([]byte, 0),
+			Error: err,
+		}
 	}
 
 	header := &Header{
-		Key:  *object.Key,
-		Data: wb.Bytes(),
+		Key:   *object.Key,
+		Data:  wb.Bytes(),
+		Error: nil,
 	}
 
 	return header

@@ -28,40 +28,42 @@ const batchSize int = 1000
 func ListBucket(client *s3.Client, bucket string, sem chan token) <-chan types.Object {
 	c := make(chan types.Object)
 
-	sem <- token{}
 	go func() {
+		sem <- token{}
+		go func() {
+			ctx := context.Background()
 
-		ctx := context.Background()
-		responseLength := batchSize
-		afterKey := ""
-		batchSizeInt32 := int32(batchSize)
+			responseLength := batchSize
+			afterKey := ""
+			batchSizeInt32 := int32(batchSize)
 
-		for responseLength == batchSize {
-			response, err := client.ListObjectsV2(ctx,
-				&s3.ListObjectsV2Input{
-					Bucket:     aws.String(bucket),
-					StartAfter: &afterKey,
-					MaxKeys:    batchSizeInt32,
-				})
-			if err != nil {
-				log.Printf("failed listing bucket %s: %s\n", bucket, err)
-				close(c)
-				<-sem
-				return
+			for responseLength == batchSize {
+				response, err := client.ListObjectsV2(ctx,
+					&s3.ListObjectsV2Input{
+						Bucket:     aws.String(bucket),
+						StartAfter: &afterKey,
+						MaxKeys:    batchSizeInt32,
+					})
+				if err != nil {
+					log.Printf("failed listing bucket %s: %s\n", bucket, err)
+					close(c)
+					<-sem
+					return
+				}
+
+				responseLength = len(response.Contents)
+				if responseLength == batchSize {
+					afterKey = *response.Contents[responseLength-1].Key
+				}
+
+				for _, object := range response.Contents {
+					c <- object
+				}
 			}
 
-			responseLength = len(response.Contents)
-			if responseLength == batchSize {
-				afterKey = *response.Contents[responseLength-1].Key
-			}
-
-			for _, object := range response.Contents {
-				c <- object
-			}
-		}
-
-		close(c)
-		<-sem
+			close(c)
+			<-sem
+		}()
 	}()
 
 	return c
