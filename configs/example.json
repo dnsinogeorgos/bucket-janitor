@@ -1,5 +1,4 @@
 {
-  "s3_region": "a-region-1",
   "s3_buckets": [
     "bucket_name1",
     "bucket_name2"
