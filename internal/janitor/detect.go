@@ -21,13 +21,13 @@ func (j *Janitor) detectTypes() {
 
 	for h := range j.headerChan {
 		wg.Add(1)
-		go j.detectHeader(h, &wg)
+		go j.scanObject(h, &wg)
 	}
 
 	wg.Wait()
 }
 
-func (j *Janitor) detectHeader(h Header, wg *sync.WaitGroup) {
+func (j *Janitor) scanObject(h Header, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	keyMime := mime.TypeByExtension(filepath.Ext(h.Key))

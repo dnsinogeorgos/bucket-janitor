@@ -63,7 +63,8 @@ func (j *Janitor) retrieveHeader(o Object, wg *sync.WaitGroup) {
 	}
 
 	j.headerChan <- Header{
-		Key:  o.Key,
-		Data: wb.Bytes(),
+		Bucket: o.Bucket,
+		Key:    o.Key,
+		Data:   wb.Bytes(),
 	}
 }
