@@ -9,11 +9,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/dnsinogeorgos/bucket-janitor/internal/aws"
 	"github.com/olekukonko/tablewriter"
+	"go.uber.org/zap"
 )
 
 type token struct{}
 
 type Janitor struct {
+	l           *zap.Logger
 	wg          *sync.WaitGroup
 	client      *s3.Client
 	downloader  *manager.Downloader
@@ -30,7 +32,10 @@ func New(configPath string) *Janitor {
 	config := aws.CreateLoad(configPath)
 	var wg sync.WaitGroup
 
+	logger, _ := zap.NewProduction()
+
 	j := &Janitor{
+		logger,
 		&wg,
 		config.Client,
 		config.Downloader,
@@ -47,6 +52,8 @@ func New(configPath string) *Janitor {
 }
 
 func (j *Janitor) Run() {
+	defer j.l.Sync()
+
 	j.wg.Add(4)
 	go j.listObjects()
 	go j.retrieveHeaders()

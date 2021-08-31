@@ -2,8 +2,9 @@ package janitor
 
 import (
 	"context"
-	"log"
 	"sync"
+
+	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -51,7 +52,7 @@ func (j *Janitor) listBucket(bucket string, wg *sync.WaitGroup) {
 				MaxKeys:    batchSizeInt32,
 			})
 		if err != nil {
-			log.Printf("failed listing bucket %s: %s\n", bucket, err)
+			j.l.Error("error listing bucket", zap.String("bucket", bucket), zap.Error(err))
 			return
 		}
 

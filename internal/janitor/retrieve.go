@@ -2,9 +2,10 @@ package janitor
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"sync"
+
+	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
@@ -47,7 +48,7 @@ func (j *Janitor) retrieveHeader(o Object, wg *sync.WaitGroup) {
 	case numBytes > int(o.Size):
 		numBytes = int(o.Size)
 	case numBytes == 0:
-		fmt.Printf("\n%s %s: %s\n", o.Bucket, o.Key, fmt.Errorf("object has 0 bytes"))
+		j.l.Info("object has 0 bytes", zap.String("bucket", o.Bucket), zap.String("key", o.Key))
 		return
 	}
 
@@ -57,7 +58,7 @@ func (j *Janitor) retrieveHeader(o Object, wg *sync.WaitGroup) {
 		Range:  aws.String("bytes=0-" + strconv.Itoa(numBytes-1)),
 	})
 	if err != nil {
-		fmt.Printf("\n%s %s: %s\n", o.Bucket, o.Key, err)
+		j.l.Error("error downloading header", zap.String("bucket", o.Bucket), zap.String("key", o.Key), zap.Error(err))
 		return
 	}
 

@@ -9,4 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.8.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/vimeo/go-magic v1.0.0
+	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/multierr v1.7.0 // indirect
+	go.uber.org/zap v1.19.0
 )
